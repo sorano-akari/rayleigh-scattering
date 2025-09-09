@@ -43,6 +43,8 @@
     <canvas id="rayleighCanvas" width="800" height="450"></canvas>
     <div id="controls">
         <button id="startStopButton">スタート</button>
+        <button id="blueSkyButton">青空観測モード</button>
+        <button id="sunsetButton">夕焼け観測モード</button>
         <label for="sunYSlider">太陽光の高さ (0:上空, 100:地表)</label>
         <input type="range" id="sunYSlider" min="0" max="100" value="0">
         
@@ -53,7 +55,7 @@
         <input type="range" id="domeAngleSlider" min="0" max="90" value="0">
         
         <label for="particleCountSlider">粒子数 (<span id="particleCountValue">200</span>)</label>
-        <input type="range" id="particleCountSlider" min="50" max="1000" value="200" step="50">
+        <input type="range" id="particleCountSlider" min="200" max="2000" value="200" step="100">
 
         <button id="resetButton">リセット</button>
     </div>
@@ -68,6 +70,9 @@
         const particleCountValueSpan = document.getElementById('particleCountValue');
         const startStopButton = document.getElementById('startStopButton');
         const resetButton = document.getElementById('resetButton');
+        const blueSkyButton = document.getElementById('blueSkyButton');
+        const sunsetButton = document.getElementById('sunsetButton');
+
 
         let PARTICLE_COUNT = parseInt(particleCountSlider.value);
         let particles = [];
@@ -131,7 +136,7 @@
                 this.reset();
             }
 
-            // 修正: 波長からより正確なRGB値を生成する関数
+            // 波長からRGB値を生成する関数
             wavelengthToRgb(w) {
                 let r, g, b;
                 if (w >= 380 && w < 440) { // 紫〜青
@@ -199,7 +204,6 @@
                 if (!this.hitDome && distSq < DOME_RADIUS ** 2 && this.y < DOME_CENTER_Y) {
                     
                     const particleAngle = Math.atan2(-this.vy, -this.vx);
-                    // 修正: 扇形と一致する角度を計算（スライダー0:左、90:上、時計回り）
                     const domeVectorAngle = Math.PI + (domeAngleSlider.value / 90) * (Math.PI / 2);
 
                     const angleDiff = Math.abs(particleAngle - domeVectorAngle);
@@ -351,6 +355,7 @@
         function animate() {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
             drawGround(false);
 
             particles.forEach(p => {
@@ -381,6 +386,34 @@
         // イベントリスナー
         startStopButton.addEventListener('click', startSimulation);
         resetButton.addEventListener('click', resetSimulation);
+
+        blueSkyButton.addEventListener('click', () => {
+            sunYSlider.value = 15; // 修正: 上から15%
+            domeXSlider.value = 10; // 修正: 左から10%
+            domeAngleSlider.value = 90;
+            if (simulationRunning) {
+                resetSimulation();
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawGround(true);
+            }
+            startSimulation();
+        });
+
+        sunsetButton.addEventListener('click', () => {
+            sunYSlider.value = 100;
+            domeXSlider.value = 95;
+            domeAngleSlider.value = 0;
+            if (simulationRunning) {
+                resetSimulation();
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawGround(true);
+            }
+            startSimulation();
+        });
+
+
         particleCountSlider.addEventListener('input', () => {
             particleCountValueSpan.textContent = particleCountSlider.value;
             if (simulationRunning) {
@@ -403,16 +436,17 @@
                 hitColors = { count: 0, hX: 0, hY: 0, s: 0, l: 0 };
             }
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawGround(simulationRunning ? false : true);
+            drawGround(true);
         });
         domeAngleSlider.addEventListener('input', () => {
             if (simulationRunning) {
                 hitColors = { count: 0, hX: 0, hY: 0, s: 0, l: 0 };
             }
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawGround(simulationRunning ? false : true);
+            drawGround(true);
         });
 
+        // 初回描画
         drawGround(true);
     </script>
 </body>
