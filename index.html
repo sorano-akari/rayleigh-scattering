@@ -55,7 +55,7 @@
         <input type="range" id="domeAngleSlider" min="0" max="90" value="0">
         
         <label for="particleCountSlider">粒子数 (<span id="particleCountValue">200</span>)</label>
-        <input type="range" id="particleCountSlider" min="200" max="2000" value="200" step="100">
+        <input type="range" id="particleCountSlider" min="500" max="5000" value="200" step="100">
 
         <button id="resetButton">リセット</button>
     </div>
@@ -65,7 +65,7 @@
         const ctx = canvas.getContext('2d');
         const sunYSlider = document.getElementById('sunYSlider');
         const domeXSlider = document.getElementById('domeXSlider');
-        const domeAngleSlider = document.getElementById('domeAngleSlider');
+        const domeAngleSlider = document.getElementById('domeAngleSlider'); // ここを修正
         const particleCountSlider = document.getElementById('particleCountSlider');
         const particleCountValueSpan = document.getElementById('particleCountValue');
         const startStopButton = document.getElementById('startStopButton');
@@ -136,36 +136,45 @@
                 this.reset();
             }
 
-            // 新しい波長からHSL経由でRGBを計算するロジック
+            // ★ここからwavelengthToRgb関数を修正★
             wavelengthToRgb(w) {
                 let h = 0;
-                // 波長を色相(Hue)にマッピングする
-                if (w >= 380 && w <= 440) { // 紫〜青
-                    h = 240 + 60 * (w - 440) / 60; // 300(紫) -> 240(青)
-                } else if (w > 440 && w <= 490) { // 青〜シアン
-                    h = 240 + 60 * (w - 440) / 50; // 240(青) -> 180(シアン)
-                    h = 240 - 60 * (w - 440) / 50; // 240(青) -> 180(シアン) 
-                } else if (w > 490 && w <= 510) { // シアン〜緑
-                    h = 180 + 60 * (w - 490) / 20; // 180(シアン) -> 120(緑)
-                    h = 180 - 60 * (w - 490) / 20; // 180(シアン) -> 120(緑) 
-                } else if (w > 510 && w <= 580) { // 緑〜黄
-                    h = 120 - 60 * (w - 510) / 70; // 120(緑) -> 60(黄)
-                } else if (w > 580 && w <= 645) { // 黄〜赤
-                    h = 60 - 60 * (w - 580) / 65; // 60(黄) -> 0(赤)
-                } else if (w > 645 && w <= 780) { // 赤
-                    h = 0;
+                // 波長を色相(Hue)にマッピングする (0-360度)
+                // このマッピングは、人間の知覚する虹のスペクトルを近似しています。
+                // 参考: https://www.eff.org/files/img/rainbow.png
+                // 380nm(紫) -> 約300度
+                // 440nm(青) -> 約240度
+                // 490nm(シアン) -> 約180度
+                // 510nm(緑) -> 約120度
+                // 580nm(黄) -> 約60度
+                // 645nm(赤) -> 約0度/360度
+
+                if (w >= 380 && w < 440) { // 紫〜青 (300度〜240度)
+                    h = 300 - (w - 380) / 60 * 60; // 380nmで300度、440nmで240度
+                } else if (w >= 440 && w < 490) { // 青〜シアン (240度〜180度)
+                    h = 240 - (w - 440) / 50 * 60; // 440nmで240度、490nmで180度
+                } else if (w >= 490 && w < 510) { // シアン〜緑 (180度〜120度)
+                    h = 180 - (w - 490) / 20 * 60; // 490nmで180度、510nmで120度
+                } else if (w >= 510 && w < 580) { // 緑〜黄 (120度〜60度)
+                    h = 120 - (w - 510) / 70 * 60; // 510nmで120度、580nmで60度
+                } else if (w >= 580 && w < 645) { // 黄〜赤 (60度〜0度)
+                    h = 60 - (w - 580) / 65 * 60; // 580nmで60度、645nmで0度
+                } else if (w >= 645 && w <= 780) { // 赤
+                    h = 0; // 645nm以上は赤（0度）
                 } else {
-                    h = 0;
+                    h = 0; // 可視光線外は赤としておく
                 }
                 
-                // 彩度(S)と明度(L)は一定とする
-                const s = 0.9;
-                const l = 0.6;
+                // 彩度(S)と明度(L)は、スペクトルの端で少し落とすなど、調整可能。
+                // 現状は固定値で鮮やかさを保つ。
+                const s = 0.9; 
+                const l = 0.6; 
                 
                 // HSLからRGBに変換して返す
                 const [r, g, b] = hslToRgb(h, s, l);
                 return `rgb(${r},${g},${b})`;
             }
+            // ★ここまでwavelengthToRgb関数を修正★
 
             getRgbComponents() {
                 const rgb = this.color.match(/\d+/g).map(Number);
